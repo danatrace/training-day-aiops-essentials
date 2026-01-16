@@ -1,0 +1,83 @@
+{
+  "id": "b2eec95a-072a-4de6-a128-6b92a3b28256",
+  "title": "import-training-content-from-repo",
+  "tasks": {
+    "get-content": {
+      "name": "get-content",
+      "input": {
+        "owner": "danatrace",
+        "filePath": "workflows/{{_.item.name }}",
+        "repository": "training-day-aiops-essentials",
+        "connectionId": "vu9U3hXa3q0AAAABAClhcHA6ZHluYXRyYWNlLmdpdGh1Yi5jb25uZWN0b3I6Y29ubmVjdGlvbgAGdGVuYW50AAZ0ZW5hbnQAJDQ5ZDFmNGRlLWRjYmItMzc2NC05YmU2LTg5NTUwODFiYWQzN77vVN4V2t6t"
+      },
+      "action": "dynatrace.github.connector:get-content",
+      "active": true,
+      "position": {
+        "x": 0,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "get-list-of-workflows-from-github": "OK"
+        }
+      },
+      "withItems": "item in {{ result(\"get-list-of-workflows-from-github\").json }}",
+      "concurrency": 1,
+      "description": "Retrieves the content of a file in a repository",
+      "predecessors": [
+        "get-list-of-workflows-from-github"
+      ]
+    },
+    "import-workflows": {
+      "name": "import-workflows",
+      "input": {
+        "script": "// optional import of sdk modules\nimport { execution } from '@dynatrace-sdk/automation-utils';\nimport { workflowsClient } from \"@dynatrace-sdk/client-automation\";\n\nexport default async function({execution_id, loopItemValue}) { \n  // your code goes here\n  // e.g. get the current execution\n  const { input } = await fetch(`/platform/automation/v1/executions/${execution_id}`).then((res) => res.json());\n  const ex = await execution();\n  console.log(loopItemValue)\n  let data = \"\"\n  var replace_accountid  = loopItemValue.content.replace(/554872066791/g, input.aws_connection_name)\n  var replace_owner  = replace_accountid.replace(/bc935a57-c7d3-440e-922c-79a22bf7afd6/g, ex.user)\n  try {\n      data = workflowsClient.createWorkflow({\n       body: JSON.parse(replace_owner)\n      });\n  } catch (error) {\n    // Code to handle the error\n  }\n\n\n  return \"done\";\n}"
+      },
+      "action": "dynatrace.automations:run-javascript",
+      "active": true,
+      "position": {
+        "x": 0,
+        "y": 3
+      },
+      "conditions": {
+        "states": {
+          "get-content": "OK"
+        }
+      },
+      "withItems": "item in {{ result(\"get-content\") }}",
+      "concurrency": 1,
+      "description": "Run custom JavaScript code.",
+      "predecessors": [
+        "get-content"
+      ]
+    },
+    "get-list-of-workflows-from-github": {
+      "name": "get-list-of-workflows-from-github",
+      "input": {
+        "url": "https://api.github.com/repos/danatrace/training-day-aiops-essentials/contents/workflows",
+        "method": "GET",
+        "failOnResponseCodes": "400-599"
+      },
+      "action": "dynatrace.automations:http-function",
+      "active": true,
+      "position": {
+        "x": 0,
+        "y": 1
+      },
+      "description": "Issue an HTTP request to any API.",
+      "predecessors": []
+    }
+  },
+  "description": "",
+  "ownerType": "USER",
+  "isPrivate": true,
+  "trigger": {},
+  "schemaVersion": 3,
+  "result": null,
+  "input": {
+    "aws_connection_name": "589650258462"
+  },
+  "hourlyExecutionLimit": 1000,
+  "type": "STANDARD",
+  "guide": null
+}

@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Dynatrace AWS Use Case Install v6 Templates
+
+
+Metadata:
+  Version:
+    Number: v0.5.3
+
+Resources:
+  DynwfCreateCloudFormationStack:
+    Type: AWS::SSM::Document
+    DeletionPolicy: Retain
+    Properties:
+      Name: Dynwf-CreateCloudFormationStack
+      DocumentType: Automation
+      Content:
+        schemaVersion: '0.3'
+        description: This is a Cloudformation Template used to trigger cloudformation
+          stack creation from Dynatrace Workflows
+        parameters:
+          stackname:
+            type: String
+          cfyamls3url:
+            type: String
+        mainSteps:
+          - name: CreateCloudFormationStack
+            action: aws:createStack
+            isEnd: true
+            inputs:
+              StackName: '{{ stackname }}'
+              Capabilities:
+                - CAPABILITY_NAMED_IAM
+              TimeoutInMinutes: 120
+              TemplateURL: '{{ cfyamls3url }}'
+        outputs:
+          - CreateCloudFormationStack.StackId
+          - CreateCloudFormationStack.StackStatus
+          - CreateCloudFormationStack.StackStatusReason
+          - CreateCloudFormationStack.OutputPayload
+  DynwfDeleteCloudFormationStack:
+    Type: AWS::SSM::Document
+    DeletionPolicy: Retain
+    Properties:
+      Name: Dynwf-DeleteCloudFormationStack
+      DocumentType: Automation
+      Content:
+        schemaVersion: '0.3'
+        description: This is a Cloudformation Template used to trigger cloudformation
+          stack deletion from Dynatrace Workflows
+        parameters:
+          stackname:
+            type: String
+        mainSteps:
+          - name: DeleteCloudFormationStack
+            action: aws:deleteStack
+            isEnd: true
+            inputs:
+              StackName: '{{ stackname }}'
+  DynatraceSsmrole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Join 
+        - ''
+        - - 'AmazonSSMManagedInstanceCore'
+          
+      Description: Role for SSM to manage ec2
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  DynatraceSSmRoleProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      InstanceProfileName: !Join 
+        - ''
+        - - 'AmazonSSMManagedInstanceCore'
+          
+      Roles:
+        - Ref: DynatraceSsmrole
+    DependsOn:
+      - DynatraceSsmrole
